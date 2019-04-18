@@ -1,0 +1,438 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+install.packages("dplyr")
+install.packages("readr")
+install.packages("irr")
+```
+
+```{r}
+#on charge les données
+library(dplyr)
+library(readr)
+MesureMatelas1 <- read.csv("C:/Users/Lenovo/Desktop/mesures.csv", stringsAsFactors = F, sep=";", dec=".")
+MesureMatelas2<- read.csv("C:/Users/Lenovo/Desktop/mesuresj1.csv", stringsAsFactors = F, sep=";", dec=".")
+##on converti toute les valeurs en numeric
+MesureMatelas1$intmes3j0 <- as.numeric(MesureMatelas1$intmes3j0)
+MesureMatelas1$intmes2j0 <- as.numeric(MesureMatelas1$intmes2j0)
+MesureMatelas1$intmes4j0 <- as.numeric(MesureMatelas1$intmes4j0)
+MesureMatelas1$intmes1j0 <- as.numeric(MesureMatelas1$intmes1j0)
+
+MesureMatelas2$intmes3j1 <- as.numeric(MesureMatelas2$intmes3j1)
+MesureMatelas2$intmes2j1 <- as.numeric(MesureMatelas2$intmes2j1)
+MesureMatelas2$intmes4j1 <- as.numeric(MesureMatelas2$intmes4j1)
+MesureMatelas2$intmes1j1 <- as.numeric(MesureMatelas2$intmes1j1)
+```
+
+```{r}
+##Modélisation en trapèze
+library(irr)
+##on enleve les patients qui ont abandonné le jour2 dans les données du jour1
+MesureMatelas1bis=MesureMatelas1[-c(32,54,58),]
+x1=c(MesureMatelas1bis$intmes1j0[(MesureMatelas1bis$matelasj0==1)],MesureMatelas2$intmes1j1[(MesureMatelas2$matelasj1==1)])  
+
+x2=c(MesureMatelas1bis$intmes2j0[(MesureMatelas1bis$matelasj0==1)],MesureMatelas2$intmes2j1[(MesureMatelas2$matelasj1==1)])
+
+y1=c(MesureMatelas1bis$intmes1j0[(MesureMatelas1bis$matelasj0==2)],MesureMatelas2$intmes1j1[(MesureMatelas2$matelasj1==2)])  
+
+y2=c(MesureMatelas1bis$intmes2j0[(MesureMatelas1bis$matelasj0==2)],MesureMatelas2$intmes2j1[(MesureMatelas2$matelasj1==2)])
+#x1=matelas1 mesure1 ,x2=matelas1 mesure2,y1=matelas2 mesure1 et y2=matelas2 mesure1
+df1=data.frame(x1,x2,y1,y2)
+####Données apparaié donc on enlève tous les NA
+MesureD0 <- na.omit(df1)
+#On fait de meme pour le dosseret à 30°
+a1=c(MesureMatelas1bis$intmes3j0[(MesureMatelas1bis$matelasj0==1)],MesureMatelas2$intmes3j1[(MesureMatelas2$matelasj1==1)])  
+
+a2=c(MesureMatelas1bis$intmes4j0[(MesureMatelas1bis$matelasj0==1)],MesureMatelas2$intmes4j1[(MesureMatelas2$matelasj1==1)])
+
+b1=c(MesureMatelas1bis$intmes3j0[(MesureMatelas1bis$matelasj0==2)],MesureMatelas2$intmes3j1[(MesureMatelas2$matelasj1==2)])  
+
+b2=c(MesureMatelas1bis$intmes4j0[(MesureMatelas1bis$matelasj0==2)],MesureMatelas2$intmes4j1[(MesureMatelas2$matelasj1==2)])
+
+df2=data.frame(x1=a1,x2=a2,y1=b1,y2=b2)
+MesureD30 <- na.omit(df2)
+c=10
+##fonction qui renvoi les 4 valeurs du trapèze
+trapeze<- function(l,m){
+  listetr=c()
+  listea=c()
+  listeb=c()
+  listea1=c()
+  listeb1=c()
+  iccc=icc(cbind(l,m))$value#on prend la valeur de l'icc
+  for (i in 1:length(l)){
+    ecart=c*(1-iccc)/((abs(l[i]-m[i]))+1)#la valeur que l'on va ajouter à droite et à gauche pour faire un trapèze
+    a=min(l[i],m[i])
+    b=max(l[i],m[i])
+    a1=a-ecart
+    b1=b+ecart
+    listea=c(listea,a)
+    listeb=c(listeb,b)
+    listea1=c(listea1,a1)
+    listeb1=c(listeb1,b1)
+  }
+  listetr=cbind(listea1,listea,listeb,listeb1)
+  return(listetr)
+}
+##fonction qui donne les valeurs de trapeze(x)
+mu<- function(l,x){
+  if(l[1]<=x && x<=l[2]){
+    return((x-l[1])/(l[2]-l[1]))
+  }
+  else if(l[2]<=x && x<=l[3]){
+    return(1)
+  }
+  else if(l[3]<=x && x<=l[4]){
+    return((x-l[4])/(l[3]-l[4]))
+  }
+  else{
+    return(0)
+    
+  }
+}
+  
+trapezematelas1D0=trapeze(MesureD0$x1,MesureD0$x2)
+
+trapezematelas2D0=trapeze(MesureD0$y1,MesureD0$y2)
+
+trapezematelas1D30=trapeze(MesureD30$x1,MesureD30$x2)
+
+trapezematelas2D30=trapeze(MesureD30$y1,MesureD30$y2)
+trapezematelas2D30
+
+
+```
+
+```{r}
+##fonction qui transforme des trapèzes en triangle
+triangle<- function(l){
+
+ m=(l[,2]+l[,3]/2)#on prend la moyenne des deux valeurs au milieux du trapèze
+ k=cbind(l[,1],m,l[,4])
+ return(k)
+    
+}
+trianglematelas2D30=triangle(trapezematelas2D30)
+trianglematelas1D30=triangle(trapezematelas1D30)
+trianglematelas2D0=triangle(trapezematelas2D0)
+trianglematelas1D0=triangle(trapezematelas1D0)
+
+```
+
+```{r}
+##Intervalle
+##on calcule les écarts moyens entre mesure1 et mesure2 pour chaque matelas et position
+ecartMoyenm1D0=mean(abs(MesureD0$x1-MesureD0$x2))
+ecartMoyenm2D0=mean(abs(MesureD0$y1-MesureD0$y2))
+ecartMoyenm2D30=mean(abs(MesureD30$y1-MesureD30$y2))
+ecartMoyenm1D30=mean(abs(MesureD30$x1-MesureD30$x2))
+##on met les données par paire
+interM1D0=cbind(mesure1D0m1,mesure2D0m1)
+##on met les plus petit en premier et on additionne et soustrait l'écart moyen
+for (i in 1:length(mesure1D0m1)){
+  if(interM1D0[i,][1]>interM1D0[i,][2]){
+    a=interM1D0[i,][1]
+    interM1D0[i,][1]=interM1D0[i,][2]
+    interM1D0[i,][2]=a
+  }
+  interM1D0[i,][1]=interM1D0[i,][1]-ecartMoyenm1D0
+  interM1D0[i,][2]=interM1D0[i,][2]+ecartMoyenm1D0
+
+}
+
+interM2D0=cbind(mesure1D0m2,mesure2D0m2)
+##on met les plus petit en premier
+for (i in 1:length(mesure1D0m2)){
+  if(interM2D0[i,][1]>interM2D0[i,][2]){
+    a=interM2D0[i,][1]
+    interM2D0[i,][1]=interM2D0[i,][2]
+    interM2D0[i,][2]=a
+  }
+  interM2D0[i,][1]=interM2D0[i,][1]-ecartMoyenm2D0
+  interM2D0[i,][2]=interM2D0[i,][2]+ecartMoyenm2D0
+}
+interM1D30=cbind(mesure1D30m1,mesure2D30m1)
+##on met les plus petit en premier
+for (i in 1:length(mesure1D30m1)){
+  if(interM1D30[i,][1]>interM1D30[i,][2]){
+    a=interM1D30[i,][1]
+    interM1D30[i,][1]=interM1D30[i,][2]
+    interM1D30[i,][2]=a
+  }
+  interM1D30[i,][1]=interM1D30[i,][1]-ecartMoyenm1D30
+  interM1D30[i,][2]=interM1D30[i,][2]+ecartMoyenm1D30
+}
+interM2D30=cbind(mesure1D30m2,mesure2D30m2)
+##on met les plus petit en premier
+for (i in 1:length(mesure1D30m2)){
+  if(interM2D30[i,][1]>interM2D30[i,][2]){
+    a=interM2D30[i,][1]
+    interM2D30[i,][1]=interM2D30[i,][2]
+    interM2D30[i,][2]=a
+  }
+  interM2D30[i,][1]=interM2D30[i,][1]-ecartMoyenm2D30
+  interM2D30[i,][2]=interM2D30[i,][2]+ecartMoyenm2D30
+}
+
+```
+
+```{r}
+##test de wilkoxon rank intervalle denoeux matelas à 0°
+#mais l'intervalle de la pvalue est 0,1
+n=length(interM1D0[,1])
+m=length(interM2D0[,1])
+l=n+m
+wh=0
+ph=1
+zh=c(interM1D0[,2],interM2D0[,1])
+zh=sort(zh)
+interM2D0[,1] = sort(interM2D0[,1])
+
+for(i in 1:l){
+   
+  if (zh[i]==interM2D0[,1][ph] && ph<=length(interM2D0[,1])){
+    ph=ph+1
+    
+  }
+ 
+  else{
+    wh=wh+i
+  }
+  
+}
+
+z=c(interM1D0[,1],interM2D0[,2])
+z=sort(z)
+interM1D0[,1]=sort(interM1D0[,1])
+w=0
+q=1
+for(j in 1:l){{
+  
+  if (interM1D0[,1][q]==z[j] && q<=length(interM1D0[,1])){
+    q=q+1
+    w=w+j
+  }
+  }
+}
+
+nu=n*(n+m+1)/2
+s2=n*m*(n+m+1)/12
+tbas=(w-nu)/sqrt(s2)
+thaut=(wh-nu)/sqrt(s2)
+val=max(thaut,-tbas)
+val2=max(0,-thaut,tbas)
+pbas=2*(1-pnorm(val))
+phaut=2*(1-pnorm(val2))
+w
+wh
+nu
+s2
+tbas
+thaut
+val
+val2
+pbas
+phaut
+```
+
+```{r}
+##Wilcoxon signed rank de  .Vaidyanathan1  pour trapèze
+#mais il y avait un probleme avec positif et negatif et on a envoyé un mail
+#on calcul la difference entre deux trapèzes
+difference<- function(l,m){
+  d=c((l[1]-m[4]),(l[2]-m[3]),(l[3]-m[2]),(l[4]-m[1]))
+  return(d)
+  }
+#on observe si le trapeze est positif ou negatif
+isPositif<- function(l){
+  if(l[1]>0){
+    return(TRUE)
+  }
+}
+isNegatif<- function(l){
+  if(l[4]<0){
+    return(TRUE)
+  }
+}
+#on calcul la moyenne pour pouvoir ordonner les différences
+wilkoxonTest<- function(t,u){
+  diff=c()
+  moyenne=c()
+  for (i in 1:length(t[,1])){
+    diff=cbind(diff,difference(t[i,],u[i,]))#on calcule la différence entre deux trapèze
+    
+  }
+  diff=t(diff)
+  
+  for (i in 1:length(t[,1])){
+    moyenne=c(moyenne,mean(diff[i,]))#on classe les différences en calculant la moyenne
+  }
+  rang=c()
+  mo=sort(moyenne)
+  for (i in 1:length(moyenne)){
+    rang=c(rang,which(mo==moyenne[i]))
+  }
+  tableau=cbind(diff,moyenne,rang)
+ 
+  s=sum(rang[isPositif(tableau)])
+  return(tableau)
+  
+}
+wilkoxonTest(trapezematelas1D30,trapezematelas2D30)
+```
+
+```{r}
+##wilkoxon signed test
+##Fuzzy Sign test for imprecise quantities for triangular fuzzy data:Pvalue approch
+#On calcul à quel point a est supérieur à b
+superieur<- function(a,b){
+  if(b[3]<=a[1]){
+    return(1)
+  }
+  else if (b[3]>a[1]){
+    return((b[3]-2*b[2]+((b[3]*(a[2]-a[1])+a[1]*(b[3]-b[2]))/(a[2]-a[1]+b[3]-b[2])))/(2*(b[3]-b[2])))
+    
+  }
+  
+  
+}
+#calcul la différence de 2 triangles
+differencet<- function(l,m){
+  d=c((l[1]-m[3]),(l[2]-m[2]),(l[3]-m[1]))
+  return(d)
+}
+teste<- function(u,v){
+  supe=c()
+  
+  for(i in 1:length(u[,1])){
+  supe=c(supe,superieur(u[i,],v[i,]))#on met toutes les valeurs de supériorité pour chaque paire de valeur
+  }
+  
+  g=c()
+  listealpha=seq(0.5,1,0.001)#on créer plusieurs valeurs de alpha entre 0.5 et 1
+  for(i in 1:length(listealpha)){
+  tr=sup[sup>listealpha[i]]#on prend toutes les valeur de supériorité qui sont supérieur à alpha
+  g=c(g,length(tr)) #on ajoute dans une liste le nombre d'élément supérieur à ce alpha
+  
+  }
+  f0=min(g)
+  f1=max(g)
+  pbas=0
+  #on calcul pbas et phaut avec le binome
+  for (i in 0:f0){
+    pbas=pbas+choose(i,length(u[,1]))*(0.5)**(length(u[,1]))
+  }
+  phaut=0
+   for (i in 0:f1){
+    phaut=phaut+choose(i,length(u[,1]))*(0.5)**(length(u[,1]))
+   }
+  return(supe)
+  
+}
+#on choisis un degrés de précision delta et acceptance calcul à quel point l'Hypoyhèse H0est rejeté
+acceptance<- function(u,v,delta){
+  interpvalue=teste(u,v)
+  if(delta<=min(interpvalue)){
+    return( 0)
+  }
+  else if (min(interpvalue)<delta && delta<=max(interpvalue)){
+    return((delta-min(interpvalue))/(max(interpvalue)-min(interpvalue)))
+  }
+  else if (max(interpvalue)<delta && delta<=1){
+    return(1)
+  }
+}
+#mais quand on test avec nos valeur on trouve phaut=pbas=0!!!!
+teste(trianglematelas2D0,trianglematelas1D0)
+
+```
+
+```{r}
+#triangle
+##rank wilcoxon man witney de HESMIAN comme dans l'article
+A1=c(51 , 57 , 60 ,1)#on rajoute un 1 pour spécifier que ces données proviennent du première échantillon
+A2=c(38 , 44 , 47 ,1)
+A3=c(59 , 60 , 60,1)
+A4=c(40 , 44 , 49 ,1)
+A5=c(34 , 39 , 43 ,1)
+A6=c(60 , 60 , 60 ,1)
+A7=c(35 , 44 , 50 ,1)
+B1=c (55 , 58 , 58 ,0)#et un 0 == elles proviennent du deuxième
+B2=c(45 , 45 , 45 ,0)
+B3=c(45 , 50 , 55 ,0)
+B4=c(47 , 54 , 57 ,0)
+B5=c(42 , 49 , 56 ,0)
+B6=c(32 , 39 , 45 ,0)
+B7=c(50 , 50 , 50,0)
+B8=c (42 , 51 , 58 ,0)
+A=cbind(A1,A2,A3,A4,A5,A6,A7,B1,B2,B3,B4,B5,B6,B7,B8)
+#on calcul l'optimistic value pour un alpha donné
+opti <- function(l,alpha){
+if (alpha<=0.5){
+  return(l[3]+2*alpha*(l[2]-l[3]))
+}
+else{
+  return(2*alpha*(l[1]-l[2])-(l[1]-2*l[2]))
+}
+}
+#on regarde si l>m (2 triengles)
+compare<- function(l,m,alpha){
+  if(opti(l,alpha)>=opti(m,alpha)){
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+  
+} 
+
+
+#fonction qui trie une liste de triangle
+tri<- function(A,alpha){
+  for(k in 2:length(A[1,])){
+    temp=A[,k]
+    j=k
+    while((j>1) && (!(compare(temp,A[,j-1],alpha)))){
+      A[,j]=A[,j-1]
+      j=j-1
+      
+    }
+  A[,j]=temp
+    }
+return(A)
+}
+#fonction qui somme les rangs des données triés qui proviennent de l'échantillon 1
+somme<- function(t){
+  s=0
+  for (i in 1:length(t[1,])){
+    s=s+i*t[,i][4]
+    
+  }
+  return(s)
+}
+f=c()
+listealpha=seq(0,1,0.0001)#pour tous les alpha entre 0et 1
+for(i in 1:length(listealpha)){
+  tr=tri(A,listealpha[i]) #ON trri selon alpha
+  f=c(f,somme(tr))#zt on somme les rang et on les ajoutes dans une liste
+  
+  
+}
+#mais je n'arrive pas a comprendre pourquoi mais je trouve des valeurs différents que celles dans l'article
+max(f)
+min(f)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
