@@ -318,7 +318,7 @@ teste<- function(u,v){
   g=c()
   listealpha=seq(0.5,1,0.001)#on créer plusieurs valeurs de alpha entre 0.5 et 1
   for(i in 1:length(listealpha)){
-  tr=sup[sup>listealpha[i]]#on prend toutes les valeur de supériorité qui sont supérieur à alpha
+  tr=supe[supe>listealpha[i]]#on prend toutes les valeur de supériorité qui sont supérieur à alpha
   g=c(g,length(tr)) #on ajoute dans une liste le nombre d'élément supérieur à ce alpha
   
   }
@@ -333,7 +333,7 @@ teste<- function(u,v){
    for (i in 0:f1){
     phaut=phaut+choose(i,length(u[,1]))*(0.5)**(length(u[,1]))
    }
-  return(supe)
+  return(c(pbas,phaut))
   
 }
 #on choisis un degrés de précision delta et acceptance calcul à quel point l'Hypoyhèse H0est rejeté
@@ -425,7 +425,7 @@ for(i in 1:length(listealpha)){
   
   
 }
-#mais je n'arrive pas a comprendre pourquoi mais je trouve des valeurs différents que celles dans l'article
+#mais je n'arrive pas a comprendre pourquoi mais je trouve des valeurs différents que celles dans l'article on devrait trouver 55 et 62
 max(f)
 min(f)
 
