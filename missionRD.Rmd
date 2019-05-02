@@ -17,8 +17,11 @@ install.packages("irr")
 #on charge les données
 library(dplyr)
 library(readr)
-MesureMatelas1 <- read.csv("C:/Users/Lenovo/Desktop/mesures.csv", stringsAsFactors = F, sep=";", dec=".")
-MesureMatelas2<- read.csv("C:/Users/Lenovo/Desktop/mesuresj1.csv", stringsAsFactors = F, sep=";", dec=".")
+
+MesureMatelas1 <- read.csv("C:/Users/Lenovo/Desktop/mesures_corrige(1).csv", stringsAsFactors = F, dec=".")
+##"C:/Users/Lenovo/Desktop/mesuresj1.csv"sep=";","C:/Users/Lenovo/Desktop/mesures.csv"
+
+MesureMatelas2<- read.csv("C:/Users/Lenovo/Desktop/mesuresj1_corrige (1).csv", stringsAsFactors = F,  dec=".")
 ##on converti toute les valeurs en numeric
 MesureMatelas1$intmes3j0 <- as.numeric(MesureMatelas1$intmes3j0)
 MesureMatelas1$intmes2j0 <- as.numeric(MesureMatelas1$intmes2j0)
@@ -29,6 +32,7 @@ MesureMatelas2$intmes3j1 <- as.numeric(MesureMatelas2$intmes3j1)
 MesureMatelas2$intmes2j1 <- as.numeric(MesureMatelas2$intmes2j1)
 MesureMatelas2$intmes4j1 <- as.numeric(MesureMatelas2$intmes4j1)
 MesureMatelas2$intmes1j1 <- as.numeric(MesureMatelas2$intmes1j1)
+
 ```
 
 ```{r}
@@ -58,7 +62,7 @@ b2=c(MesureMatelas1bis$intmes4j0[(MesureMatelas1bis$matelasj0==2)],MesureMatelas
 
 df2=data.frame(x1=a1,x2=a2,y1=b1,y2=b2)
 MesureD30 <- na.omit(df2)
-c=10
+c=100
 ##fonction qui renvoi les 4 valeurs du trapèze
 trapeze<- function(l,m){
   listetr=c()
@@ -105,7 +109,7 @@ trapezematelas2D0=trapeze(MesureD0$y1,MesureD0$y2)
 trapezematelas1D30=trapeze(MesureD30$x1,MesureD30$x2)
 
 trapezematelas2D30=trapeze(MesureD30$y1,MesureD30$y2)
-trapezematelas2D30
+
 
 
 ```
@@ -118,6 +122,13 @@ moyenneMatelas1D30=(MesureD30$x1+MesureD30$x2)/2
 moyenneMatelas2D30=(MesureD30$y1+MesureD30$y2)/2
 t.test(moyenneMatelas1D0, moyenneMatelas2D0, paired=TRUE,alternative= "greater")
 t.test(moyenneMatelas1D30, moyenneMatelas2D30, paired=TRUE,alternative= "greater")
+
+```
+
+```{r}
+wilcox.test(moyenneMatelas1D0,moyenneMatelas2D0,alternative="greater",paired=TRUE)
+wilcox.test(moyenneMatelas1D30,moyenneMatelas2D30,alternative="greater",paired=TRUE)
+
 
 ```
 
@@ -140,10 +151,10 @@ trianglematelas1D0=triangle(trapezematelas1D0)
 ```{r}
 ##Intervalle
 ##on calcule les écarts moyens entre mesure1 et mesure2 pour chaque matelas et position
-ecartMoyenm1D0=mean(abs(MesureD0$x1-MesureD0$x2))
-ecartMoyenm2D0=mean(abs(MesureD0$y1-MesureD0$y2))
-ecartMoyenm2D30=mean(abs(MesureD30$y1-MesureD30$y2))
-ecartMoyenm1D30=mean(abs(MesureD30$x1-MesureD30$x2))
+ecartMoyenm1D0=mean(abs(MesureD0$x1-MesureD0$x2))/2
+ecartMoyenm2D0=mean(abs(MesureD0$y1-MesureD0$y2))/2
+ecartMoyenm2D30=mean(abs(MesureD30$y1-MesureD30$y2))/2
+ecartMoyenm1D30=mean(abs(MesureD30$x1-MesureD30$x2))/2
 ##on met les données par paire
 interM1D0=cbind(MesureD0$x1,MesureD0$x2)
 ##on met les plus petit en premier et on additionne et soustrait l'écart moyen
@@ -196,7 +207,7 @@ for (i in 1:length(MesureD30$y1)){
 
 ```{r}
 ##test de wilkoxon rank intervalle denoeux matelas à 0°
-#mais l'intervalle de la pvalue est 0,1
+
 n=length(interM1D0[,1])
 m=length(interM2D0[,1])
 l=n+m
@@ -227,6 +238,65 @@ q=1
 for(j in 1:l){{
   
   if (interM1D0[,1][q]==z[j] && q<=length(interM1D0[,1])){
+    q=q+1
+    w=w+j
+  }
+  }
+}
+
+nu=n*(n+m+1)/2
+s2=n*m*(n+m+1)/12
+tbas=(w-nu)/sqrt(s2)
+thaut=(wh-nu)/sqrt(s2)
+val=max(thaut,-tbas)
+val2=max(0,-thaut,tbas)
+pbas=2*(1-pnorm(val))
+phaut=2*(1-pnorm(val2))
+w
+wh
+nu
+s2
+tbas
+thaut
+val
+val2
+pbas
+phaut
+```
+
+```{r}
+##test de wilkoxon rank intervalle denoeux matelas à 30°
+
+n=length(interM1D30[,1])
+m=length(interM2D30[,1])
+l=n+m
+wh=0
+ph=1
+zh=c(interM1D30[,2],interM2D30[,1])
+zh=sort(zh)
+interM2D30[,1] = sort(interM2D30[,1])
+
+for(i in 1:l){
+   
+  if (zh[i]==interM2D30[,1][ph] && ph<=length(interM2D30[,1])){
+    ph=ph+1
+    
+  }
+ 
+  else{
+    wh=wh+i
+  }
+  
+}
+
+z=c(interM1D30[,1],interM2D30[,2])
+z=sort(z)
+interM1D30[,1]=sort(interM1D30[,1])
+w=0
+q=1
+for(j in 1:l){{
+  
+  if (interM1D30[,1][q]==z[j] && q<=length(interM1D30[,1])){
     q=q+1
     w=w+j
   }
@@ -364,11 +434,10 @@ wilkoxonTest<- function(t,u){
 }
 
 wilkoxonTest(trapezematelas1D0,trapezematelas2D0)
+wilkoxonTest(trapezematelas1D30,trapezematelas2D30)
 ```
 
-```{r}
-psignrank(66,16)
-```
+
 
 ```{r}
 ##wilkoxon signed test
@@ -409,12 +478,15 @@ teste<- function(u,v){
   pbas=0
   #on calcul pbas et phaut avec le binome
   for (i in 0:f0){
-    pbas=pbas+choose(i,length(u[,1]))*(0.5)**(length(u[,1]))
+    
+    pbas=pbas+choose(length(u[,1]),i)*(0.5)**(length(u[,1]))
   }
   phaut=0
    for (i in 0:f1){
-    phaut=phaut+choose(i,length(u[,1]))*(0.5)**(length(u[,1]))
+     
+    phaut=phaut+choose(length(u[,1]),i)*(0.5)**(length(u[,1]))
    }
+  
   return(c(pbas,phaut))
   
 }
@@ -431,8 +503,8 @@ acceptance<- function(u,v,delta){
     return(1)
   }
 }
-#mais quand on test avec nos valeur on trouve phaut=pbas=0!!!!
 teste(trianglematelas2D0,trianglematelas1D0)
+teste(trianglematelas2D30,trianglematelas1D30)
 
 ```
 
@@ -571,9 +643,159 @@ interval_KS(interM2D30,interM1D30)
 interval_KS(interM2D0,interM1D0)
 ```
 
+
+
 ```{r}
-pnorm(-3)
+##A generalization of the Wilcoxon signed-rank test and its applications
+
+
+
+#fonction qui calcul l'alphacut pour des données trapezoidale
+alphacut<- function(t,alpha){
+  return(c(((t[2]-t[1])*alpha+t[1]),(t[4]-(t[4]-t[3])*alpha)))
+}
+#on calcul la difference entre le minimum de l'alphacut d'un triangle et le maximum de l'alphacut d'un autre triangle
+gldiff<- function(t1,t2,alpha){
+  return(min(alphacut(t1,alpha))-max(alphacut(t2,alpha)))
+  
+  
+}
+#on calcul la difference entre le minimum de l'alphacut d'un triangle et le maximum de l'alphacut d'un autre triangle mais dans l'autre sens que gldiff
+gudiff<- function(t1,t2,alpha){
+  return(max(alphacut(t1,alpha))-min(alphacut(t2,alpha)))
+  
+}
+gl<- function(liste1,liste2,alpha){
+  listegldiff=c()
+  for (i in 1:length(liste1[,1])){#on calcul la difference pour deux listes de triangle
+    listegldiff=c(listegldiff,gldiff(liste1[i,],liste2[i,],alpha))
+    
+  }
+  rang=c()
+  mo=sort(listegldiff) #on tri les différence
+  for (i in 1:length(listegldiff)){
+    rang=c(rang,which(mo==listegldiff[i]))#on donne le rang de chaque différence
+  }
+  tableau=cbind(listegldiff,rang)
+  sp=sum(rang[listegldiff>0])#on fait la somme de tous les rangs dont la différence est positive
+  return(sp)
+}
+gu<- function(liste1,liste2,alpha){#on fait pareil que gl mais avec la fonction gudiff
+  listegudiff=c()
+  for (i in 1:length(liste1[,1])){
+    listegudiff=c(listegudiff,gudiff(liste1[i,],liste2[i,],alpha))
+    
+  }
+  rang=c()
+  mo=sort(listegudiff)
+  for (i in 1:length(listegudiff)){
+    rang=c(rang,which(mo==listegudiff[i]))
+  }
+  tableau=cbind(listegudiff,rang)
+  sp=sum(rang[listegudiff>0])
+  return(sp)
+}
+Tl<- function(liste1,liste2,alpha){
+  listebeta=seq(alpha,1,0.01)#pour tous les betas superieur à alpha
+  listegl=c()
+  listegu=c()
+  for(i in 1:length(listebeta)){
+    listegl=c(listegl,gl(liste1,liste2,listebeta[i]))
+    listegu=c(listegu,gu(liste1,liste2,listebeta[i]))
+  
+  }
+  
+  return(min(min(listegl),min(listegu)))
+  
+}
+Tu<- function(liste1,liste2,alpha){
+  listebeta=seq(alpha,1,0.01)#pour tous les betas superieur à alpha
+  listegl=c()
+  listegu=c()
+  for(i in 1:length(listebeta)){
+    listegl=c(listegl,gl(liste1,liste2,listebeta[i]))
+    listegu=c(listegu,gu(liste1,liste2,listebeta[i]))
+  
+  }
+ 
+  return( max(max(listegl),max(listegu)))
+  
+}
+nutplus<- function(liste1,liste2,t){
+  listealpha=seq(0,1,0.01)
+  listenu=c()
+  for (i in 1:length(listealpha)){
+    a=seq(Tl(liste1,liste2,listealpha[i]),Tu(liste1,liste2,listealpha[i]))
+    if(min(a)<=t && t<=max(a)){
+      listenu=c(listenu,listealpha[i])
+    }
+    
+    
+  }
+  if(is.null(listenu)){#car max d'une liste vide donne moins l'infini
+    return(0)
+
+  }
+  else{
+  return(max(listenu))
+  }
+
+}
+calaculnutpluspourtousT<- function(liste1,liste2){
+listenutplus=c()
+n=length(liste1[,1])
+listet=seq(1,n*(n+1)/2)
+t=c()
+for(i in 1:length(listet)){
+  listenutplus=c(listenutplus,nutplus(liste1,liste2,listet[i]))
+  t=c(t,i)
+  
+}
+return(cbind(listenutplus,t))
+}
+#nutplus(trapezematelas1D0,trapezematelas2D0,1485)
+nutplus(trapezematelas1D30,trapezematelas2D30,1431)
+
+
+
+
+
 ```
+
+```{r}
+cdelta<- function(liste1,liste2,delta){
+#calcul de Cdelta
+n=length(liste1[,1])
+#on observe si liste1-liste2<0
+t=0
+z=(t-(n*(n+1)/4)-0.5)/(sqrt((2*n*(n+1)*(2*n+1))/48))
+listet=seq(1,n*(n+1)/2)
+max=0
+for (i in  1:length(listet)){
+
+t=listet[i]
+if(pnorm(z)<delta){
+  max=t
+  
+  
+}
+}
+
+return(max)
+
+}
+cdelta(trapezematelas1D0,trapezematelas2D0,0.05)
+cdelta(trapezematelas1D30,trapezematelas2D30,0.05)
+```
+
+```{r}
+n=53
+z=(t-(n*(n+1)/4)-0.5)/(sqrt((2*n*(n+1)*(2*n+1))/48))
+t=100
+pnorm(z)
+```
+
+
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
